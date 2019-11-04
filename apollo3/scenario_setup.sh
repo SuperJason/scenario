@@ -20,19 +20,30 @@ cd $WORK_PATH
 #
 # Setup SDK
 #
-SDK_NAME=AmbiqSuite-R2.3.0
-SDK_ULR=https://s3-us-west-1.amazonaws.com/s3.ambiqmicro.com/downloads
 if [ ! -d $SDK_NAME ]; then
-    if [ ! -f $SDK_NAME.zip ]; then
-	wget -c $SDK_ULR/$SDK_NAME.zip
+    if [ -f $SDK_NAME.zip ]; then
+	unzip $SDK_NAME.zip
+	cd $SDK_NAME
+	make clean
+	git init .
+	git add -A .
+	git commit -m "git repository initial with $SDK_NAME.zip and make clean"
+	cd -
+    else
+	echo ""
+	echo " \"$SDK_NAME.tgz\" is not found!"
+	echo " Which can be download manually from "
+	echo " https://ambiqmicro.com/mcu/"
+	echo " -> Apollo3 Blue"
+	echo " -> Software"
+	echo ""
+	exit 1
     fi
-    unzip $SDK_NAME.zip
 fi
 
 #
 # Setup JLink
 #
-JLINK_NAME=JLink_Linux_V654a_x86_64
 if [ ! -d $JLINK_NAME ]; then
     if [ -f JLink_Linux_V654a_x86_64.tgz ]; then
 	tar xzvf $JLINK_NAME.tgz
@@ -73,8 +84,3 @@ chmod a+x $WORK_PATH/setup.sh
 #
 # Prepare codes
 #
-#cd $WORK_PATH/$SDK_NAME
-#make clean
-#git init .
-#git add -A .
-#git commit -m "git repository initial with AmbiqSuite-R2.3.0.zip and make clean"

@@ -5,7 +5,10 @@
   * ambiq micro AMA3B1KK-KBR EVB v1.0
 
 * SDK
-  * AmbiqSuite-Rel2.3.0, https://s3-us-west-1.amazonaws.com/s3.ambiqmicro.com/downloads/AmbiqSuite-R2.3.0.zip
+  * AmbiqSuite-R2.3.0
+      https://ambiqmicro.com/mcu/
+      -> Apollo3 Blue
+      -> Software
 
 * Docs
   * Quick Start Guide, https://ambiqmicro.com/static/mcu/files/Apollo3_EVB_Quick_Start_Guide_r1p0.pdf
@@ -21,5 +24,17 @@
   * scenario_setup.sh
 
 * Make
+  * cd AmbiqSuite-R2.3.0
+  * . ../setup.sh
+  * make -j8 bsp
+  * make -C boards/apollo3_evb/examples/binary_counter/gcc/
+  * make -C boards/apollo3_evb/examples/ble_freertos_amdtpc/
 
 * Flash Download
+  * cd AmbiqSuite-R2.3.0
+  * . ../setup.sh
+  * jlink_flash.sh boards/apollo3_evb/examples/binary_counter/gcc/bin/binary_counter.bin
+
+* Debug
+  * GDB: jlink_gdb.sh boards/apollo3_evb/examples/binary_counter/gcc/bin/binary_counter.bin
+  * SWO logs: jlink_swoview.sh
