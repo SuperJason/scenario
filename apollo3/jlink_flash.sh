@@ -24,13 +24,11 @@ sleep 10
 //mem32 0x0000C000 0x10
 //mem32 0x0000E000 0x10
 
-// Erase internal flash
-w4 0x10000000 0x00000000 // instance number
-w4 0x10000004 0x00000002 // number of main block pages to erase
-w4 0x10000008 0x12344321 // PROGRAM key to pass to flash helper routine
-w4 0x1000000C 0xFFFFFFFF // return code debugger sets this to -1 all RCs are >= 0
-w4 0x10000010 0x00000006 // PageNumber of the first flash page to erase
-setPC 0x08000065         // call the ROM helper function
+// Erase internal flash, instance #1, 512kByte
+w4 0x10000000 0x00000000 // Instance number
+w4 0x10000004 0x12344321 // PROGRAM key to pass to flash helper routine
+w4 0x10000008 0xFFFFFFFF // return code debugger sets this to -1 all RCs are >= 0
+setPC 0x08000069         // call the ROM helper function
 g
 sleep 50
 mem32 0x1000000C 1
