@@ -28,13 +28,13 @@ class AmdtpDelegate(DefaultDelegate):
     def __init__(self, params):
         DefaultDelegate.__init__(self)
         # ... initialise here
-        print(params)
+        self.hd = params
 
     def handleNotification(self, cHandle, data):
-        # ... perhaps check cHandle
-        # ... process 'data'
-        print('cHandle: ' + str(cHandle))
-        print('data: ' + str(data))
+        self.hd['handle'] = cHandle
+        self.hd['data'] = data
+
+crc32_func = crcmod.mkCrcFun(0x104C11DB7, initCrc=0xffffffff, xorOut=0)
 
 def scan_dev(name):
     params = {'name':name, 'dev':None}
@@ -47,10 +47,16 @@ def scan_dev(name):
     return params['dev']
 
 def connect_dev(addr, addrtype):
+    conn_handle = {'conn':None, 'rx_ch':None, 'tx_ch':None, 'ctrl_ch':None, 'nf_handle':None}
+
     print('Connecting ' + addr)
     conn = Peripheral(addr, addrtype)
     print(addr + ": connected")
-    conn.setDelegate(AmdtpDelegate('AmdtpDelegate params'))
+    conn_handle['conn'] = conn
+
+    nf_handle = {'handle':None, 'data':None}
+    conn.setDelegate(AmdtpDelegate(nf_handle))
+    conn_handle['nf_handle'] = nf_handle
 
     #services_dic = conn.getServices()
     #for service in services_dic:
@@ -60,9 +66,6 @@ def connect_dev(addr, addrtype):
     #        print('    charac: ' + str(charac.uuid))
 
     print(' ---------- Amdtp service below ----------')
-    srv_rec_ch = None
-    srv_snd_ch = None
-    srv_ctrl_ch = None
     service = conn.getServiceByUUID('00002760-08c2-11e1-9073-0e8ac72e1011')
     chs = service.getCharacteristics()
     for ch in chs:
@@ -71,24 +74,24 @@ def connect_dev(addr, addrtype):
         print('            ' + str(ch.getHandle()))
         # properties: WRITE NO RESPONSE, Handle: 2050
         if str(ch.uuid) == '00002760-08c2-11e1-9073-0e8ac72e0011':
-            srv_rec_ch = ch
+            conn_handle['rx_ch'] = ch
         # properties: NOTIFY, Handle: 2052
         elif str(ch.uuid) == '00002760-08c2-11e1-9073-0e8ac72e0012':
-            srv_snd_ch = ch
+            conn_handle['tx_ch'] = ch
         # properties: WRITE NO RESPONSE, Handle: 2055
         elif str(ch.uuid) == '00002760-08c2-11e1-9073-0e8ac72e0013':
-            srv_ctrl_ch = ch
+            conn_handle['ctrl_ch'] = ch
 
-    return conn, srv_rec_ch, srv_snd_ch, srv_ctrl_ch
+    return conn_handle
 
-def amdtp_packet(lenght, header, data):
+def amdtp_packet(length, header, data):
 
-    packet = np.zeros(lenght + 8, dtype=np.uint8)
+    packet = np.zeros(length + 8, dtype=np.uint8)
     # Lenght
-    packet[0:2] = np.array([(lenght + 4) & 0xff, ((lenght + 4) >> 8) & 0xff], dtype=np.uint8)
+    packet[0:2] = np.array([(length + 4) & 0xff, ((length + 4) >> 8) & 0xff], dtype=np.uint8)
     # Header
     packet[2:4] = np.array([header & 0xff, (header >> 8) & 0xff], dtype=np.uint8)
-    packet[4:4+lenght] = data[0:lenght]
+    packet[4:4+length] = data[0:length]
     # CRC32
     crc32 = np.zeros(4, dtype=np.uint8)
     crc32_value = crc32_func(bytes(data)) ^ 0xffffffff
@@ -96,7 +99,7 @@ def amdtp_packet(lenght, header, data):
     crc32[2] = (crc32_value>>16) & 0xff
     crc32[1] = (crc32_value>>8) & 0xff
     crc32[0] = crc32_value & 0xff
-    packet[lenght+4:lenght+8] = crc32
+    packet[length+4:length+8] = crc32
 
     return packet
 
@@ -131,7 +134,52 @@ def amdtp_send(length, data, ch):
         sent_len += payload
         remain_data_len -= payload
 
-crc32_func = crcmod.mkCrcFun(0x104C11DB7, initCrc=0xffffffff, xorOut=0)
+def amdtp_packet_parse(nf_hd, rx_pkt):
+    print('handle: %d(0x%x)'%(nf_hd['handle'], nf_hd['handle']))
+
+    rx_data = nf_hd['data']
+    rx_len = len(rx_data)
+    print('data(%d): %s'%(rx_len, str(rx_data)))
+
+    offset = 0
+    if rx_pkt['pkt_rx_len'] == 0:
+        rx_pkt['length'] = (rx_data[1] << 8) | rx_data[0]
+        rx_pkt['header'] = (rx_data[3] << 8) | rx_data[2]
+        rx_pkt['data'] = np.zeros(rx_pkt['length'], dtype=np.uint8)
+        offset = 4
+        rx_len -= 4
+
+    pkt_rx_len = rx_pkt['pkt_rx_len']
+    rx_pkt['data'][pkt_rx_len:pkt_rx_len+rx_len] = np.frombuffer(rx_data[offset:offset+rx_len],dtype=np.uint8)
+    rx_pkt['pkt_rx_len'] += rx_len
+
+    #print('pkt_length: %d'%(rx_pkt['length']))
+    #print('pkt_rx_len: %d'%(rx_pkt['pkt_rx_len']))
+    #print('rx_len: %d'%(rx_len))
+
+    if rx_pkt['pkt_rx_len'] == rx_pkt['length']:
+        rx_pkt['crc32'] = rx_pkt['data'][-4]
+        rx_pkt['crc32'] |= (rx_pkt['data'][-3] << 8)
+        rx_pkt['crc32'] |= (rx_pkt['data'][-2] << 16)
+        rx_pkt['crc32'] |= (rx_pkt['data'][-1] << 24)
+        crc32_value = crc32_func(bytes(rx_pkt['data'][:-4])) ^ 0xffffffff
+        if crc32_value != rx_pkt['crc32']:
+            print('### Crc32 Error!')
+            print('### package rx crc32: 0x%x'%rx_pkt['crc32'])
+            print('### package data crc32: 0x%x'%crc32_value)
+
+        pkt_type = (rx_pkt['header'] >> 12) & 0xf
+        serial_number = (rx_pkt['header'] >> 8) & 0xf
+        enc = (rx_pkt['header'] >> 7) & 0x1
+        ack = (rx_pkt['header'] >> 6) & 0x1
+        print(' ----- Package is received -----')
+        print(' -- len: %d, type: %d, sn: %d, enc: %d, ack: %d'%(rx_pkt['length'], pkt_type, serial_number, enc, ack))
+        print(' -- data: ' + str(rx_pkt['data'][:-4]))
+        print(' -- crc32: 0x%x'%rx_pkt['crc32'])
+    elif rx_pkt['pkt_rx_len'] > rx_pkt['length']:
+        print('### Pacage RX error!')
+        print('### pkt_length: %d'%(rx_pkt['length']))
+        print('### pkt_rx_len: %d'%(rx_pkt['pkt_rx_len']))
 
 if __name__ == '__main__':
     scan_dev_name = 'Amdtp'
@@ -149,22 +197,32 @@ if __name__ == '__main__':
     amdtp_dev_addrtype = 'public'
 
     print(' ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ')
-    connect_result = connect_dev(amdtp_dev_addr, amdtp_dev_addrtype)
+    amdtp_conn_hd = connect_dev(amdtp_dev_addr, amdtp_dev_addrtype)
     print(' ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ')
-    conn, amdtp_srv_rec_ch, amdtp_srv_snd_ch, amdtp_srv_ctrl_ch = connect_result
+
+    rx_pkt = {'length':0, 'header':0, 'data':None, 'crc32':0, 'pkt_rx_len':0}
 
     length = 512
-    amdtp_send(length, np.arange(length, dtype=np.uint8), amdtp_srv_rec_ch)
     while True:
+        if rx_pkt['pkt_rx_len'] >= rx_pkt['length']:
+
+            # precess received package here
+
+            rx_pkt['length'] = 0
+            rx_pkt['header'] = 0
+            rx_pkt['data'] = None
+            rx_pkt['crc32'] = 0
+            rx_pkt['pkt_rx_len'] = 0
+            amdtp_send(length, np.arange(length, dtype=np.uint8), amdtp_conn_hd['rx_ch'])
+
         print('Waiting...')
-        if conn.waitForNotifications(10.0):
-            print('# handleNotification() was called')
-            amdtp_send(length, np.arange(length, dtype=np.uint8), amdtp_srv_rec_ch)
+        if amdtp_conn_hd['conn'].waitForNotifications(3.0):
+            amdtp_packet_parse(amdtp_conn_hd['nf_handle'], rx_pkt)
             continue
-            #break
 
-        #print('waitForNotifications timeout!')
+        print('waitForNotifications timeout!')
+        break
 
-    conn.disconnect()
+    amdtp_conn_hd['conn'].disconnect()
 
 
