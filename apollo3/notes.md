@@ -38,3 +38,6 @@
 * Debug
   * GDB: jlink_gdb.sh boards/apollo3_evb/examples/binary_counter/gcc/bin/binary_counter.bin
   * SWO logs: jlink_swoview.sh
+  * other used commands
+      AmbiqSuite-R2.3.0$ sudo python3 $SCRIPT_PATH/amdtp_ble.py
+      AmbiqSuite-R2.3.0$ make -C boards/apollo3_evb/examples/ble_freertos_amdtps/gcc/ && jlink_flash.sh boards/apollo3_evb/examples/ble_freertos_amdtps/gcc/bin/ble_freertos_amdtps.bin
