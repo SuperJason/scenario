@@ -1,5 +1,5 @@
 let g:netrw_dirhistmax  =10
-let g:netrw_dirhist_cnt =8
+let g:netrw_dirhist_cnt =9
 let g:netrw_dirhist_1='/home/mobvoi/work/task/rover_dev/images'
 let g:netrw_dirhist_2='/home/mobvoi/work/codes/rover/rover_dev/kernel'
 let g:netrw_dirhist_3='/home/mobvoi/work/codes/rover/nanohub/debug_tool/UI'
@@ -8,3 +8,4 @@ let g:netrw_dirhist_5='/home/mobvoi/work/codes/rover/nanohub/firmware/variant/ro
 let g:netrw_dirhist_6='/home/mobvoi/tmp/tmp'
 let g:netrw_dirhist_7='/home/mobvoi/work/codes/rover/nanohub/firmware/os/drivers'
 let g:netrw_dirhist_8='/home/mobvoi/work/study/githubs/scenario/vim'
+let g:netrw_dirhist_9='/home/mobvoi/work/study/githubs/scenario/vim/.vim'

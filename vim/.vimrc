@@ -89,46 +89,52 @@ set nobackup
 set nowb
 set noswapfile
 
+
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Text, tab and indent related
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" is_mcu_mode: 'yes' tab is 4 spaces
-"            : 'no' linux mode, tab is 8 and not replaced by spaces
-let s:is_mcu_mode = "no"
+" style: 'linux' linux mode, tab is 8 and not replaced by spaces
+"      : 'google' tab is 2 spaces
+"      : 'mcu' tab is 4 spaces
+let s:style= "linux"
 
-au FileType c call My_C_func()
-au FileType cpp call My_C_func()
-au FileType python call My_Py_func()
+au FileType c call Style_C_Func(s:style)
+au FileType cpp call Style_C_Func(s:style)
+au FileType python call Style_Py_Func()
 
-function! My_C_func()
-" Be smart when using tabs ;)
-"  set smarttab
-
-  if s:is_mcu_mode == "yes" 
+function! Style_C_Func(style)
+  if a:style == "linux"
+    " 1 tab == 8 spaces
+    set shiftwidth=8
+    set tabstop=8
+  elseif a:style == "google"
+    " Use spaces instead of tabs
+    set expandtab
+    " 1 tab == 2 spaces
+    set shiftwidth=2
+    set tabstop=2
+  elseif a:style == "mcu"
     " Use spaces instead of tabs
     set expandtab
     " 1 tab == 4 spaces
     set shiftwidth=4
     set tabstop=4
-  else
-    " 1 tab == 8 spaces
-    set shiftwidth=8
-    set tabstop=8
   endif
   set tw=80
   set cc=+1
   hi ColorColumn ctermbg=blue guibg=blue
+  nmap <F2> :call Style_C_Func("linux")<CR>
+  nmap <F3> :call Style_C_Func("mcu")<CR>
+  nmap <F4> :call Style_C_Func("google")<CR>
 endfunction
 
-function! My_Py_func()
+function! Style_Py_Func()
 " 1 tab == 4 spaces
   set tabstop=4
+  set shiftwidth=4
 
 " Use spaces instead of tabs
   set expandtab
-" Be smart when using tabs ;)
-  "set smarttab
-
 endfunction
 
 let Tlist_Ctags_Cmd='ctags'
@@ -144,68 +150,6 @@ nmap ,K <C-W>K
 nmap ,L <C-W>L
 nmap ,o <C-W>o
 nmap ,, <C-W><C-W>
-
-if has("cscope")
-
-    set cspc=8 " cscopepathcomp	-- how many components of the path to show
-
-    cmap ;s cs find s 
-    cmap ;g cs find g 
-    cmap ;c cs find c 
-    cmap ;t cs find t 
-    cmap ;e cs find e 
-    cmap ;f cs find f 
-    cmap ;i cs find i 
-    cmap ;d cs find d 
-
-    cmap ;ws scs find s 
-    cmap ;wg scs find g 
-    cmap ;wc scs find c 
-    cmap ;wt scs find t 
-    cmap ;we scs find e 
-    cmap ;wf scs find f 
-    cmap ;wi scs find i 
-    cmap ;wd scs find d 
-
-    nmap ;s :cs find s <C-R>=expand("<cword>")<CR><CR>	
-    nmap ;g :cs find g <C-R>=expand("<cword>")<CR><CR>	
-    nmap ;c :cs find c <C-R>=expand("<cword>")<CR><CR>	
-    nmap ;t :cs find t <C-R>=expand("<cword>")<CR><CR>	
-    nmap ;e :cs find e <C-R>=expand("<cword>")<CR><CR>	
-    nmap ;f :cs find f <C-R>=expand("<cfile>")<CR><CR>	
-    nmap ;i :cs find i ^<C-R>=expand("<cfile>")<CR>$<CR>
-    nmap ;d :cs find d <C-R>=expand("<cword>")<CR><CR>	
-
-    nmap ;ws :scs find s <C-R>=expand("<cword>")<CR><CR>	
-    nmap ;wg :scs find g <C-R>=expand("<cword>")<CR><CR>	
-    nmap ;wc :scs find c <C-R>=expand("<cword>")<CR><CR>	
-    nmap ;wt :scs find t <C-R>=expand("<cword>")<CR><CR>	
-    nmap ;we :scs find e <C-R>=expand("<cword>")<CR><CR>	
-    nmap ;wf :scs find f <C-R>=expand("<cfile>")<CR><CR>	
-    nmap ;wi :scs find i ^<C-R>=expand("<cfile>")<CR>$<CR>
-    nmap ;wd :scs find d <C-R>=expand("<cword>")<CR><CR>	
-
-    nmap ;vs :vert scs find s <C-R>=expand("<cword>")<CR><CR>	
-    nmap ;vg :vert scs find g <C-R>=expand("<cword>")<CR><CR>	
-    nmap ;vc :vert scs find c <C-R>=expand("<cword>")<CR><CR>	
-    nmap ;vt :vert scs find t <C-R>=expand("<cword>")<CR><CR>	
-    nmap ;ve :vert scs find e <C-R>=expand("<cword>")<CR><CR>	
-    nmap ;vf :vert scs find f <C-R>=expand("<cfile>")<CR><CR>	
-    nmap ;vi :vert scs find i ^<C-R>=expand("<cfile>")<CR>$<CR>
-    nmap ;vd :vert scs find d <C-R>=expand("<cword>")<CR><CR>	
-
-    command -nargs=* Csl :cs add $WACS/lepton/cscope.out
-    command -nargs=* Csq :cs add $WACS/qpsw/cscope.out
-    command -nargs=* Csp :cs add $WACS/penguin/cscope.out
-
-    if has("quickfix")
-        command -nargs=* Csqf :set cscopequickfix=s-,g-,c-,d-,i-,t-,e-,f-
-        command -nargs=* Csqfs :set cscopequickfix=s-,g-,c-,d-,i-,t-,e-,f-
-        command -nargs=* Csqfc :set cscopequickfix=s0,g0,c0,d0,i0,t0,e0,f0
-        command -nargs=* Csqfa :set cscopequickfix=s+,g+,c+,d+,i+,t+,e+,f+
-    endif
-
-endif
 
 set efm=%m
 set fileencodings=utf-8,ucs-bom,gb18030,gbk,gb2312,cp936
