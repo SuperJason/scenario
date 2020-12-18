@@ -1,0 +1,1 @@
+cecscope.vba: call delete('/nokia/be_nmp/home/zhonfu/.vim/plugin/cecscope.vim')|call delete('/nokia/be_nmp/home/zhonfu/.vim/doc/cecscope.txt')
