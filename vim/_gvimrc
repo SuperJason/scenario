@@ -1,0 +1,76 @@
+set guifont=Consolas:h12:cANSI:qDRAFT
+
+set nobackup
+set noswapfile
+set nowritebackup
+set noundofile
+
+set hlsearch
+set autoindent
+
+" rgb(199,237,204) = #C7EDCC
+hi Normal guibg=#C7EDCC
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" => Text, tab and indent related
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" style: 'linux' linux mode, tab is 8 and not replaced by spaces
+"      : 'google' tab is 2 spaces
+"      : 'mcu' tab is 4 spaces
+let s:style= "linux"
+
+au FileType c call Style_C_Func(s:style)
+au FileType cpp call Style_C_Func(s:style)
+au FileType python call Style_Py_Func()
+
+function! Style_C_Func(style)
+  if a:style == "linux"
+    " 1 tab == 8 spaces
+    set shiftwidth=8
+    set tabstop=8
+  elseif a:style == "google"
+    " Use spaces instead of tabs
+    set expandtab
+    " 1 tab == 2 spaces
+    set shiftwidth=2
+    set tabstop=2
+  elseif a:style == "mcu"
+    " Use spaces instead of tabs
+    set expandtab
+    " 1 tab == 4 spaces
+    set shiftwidth=4
+    set tabstop=4
+  endif
+  set tw=80
+  set cc=+1
+  hi ColorColumn ctermbg=blue guibg=blue
+  nmap <F2> :call Style_C_Func("linux")<CR>
+  nmap <F3> :call Style_C_Func("mcu")<CR>
+  nmap <F4> :call Style_C_Func("google")<CR>
+endfunction
+
+function! Style_Py_Func()
+" 1 tab == 4 spaces
+  set tabstop=4
+  set shiftwidth=4
+
+" Use spaces instead of tabs
+  set expandtab
+endfunction
+
+let Tlist_Ctags_Cmd='c:\tools\ctags'
+nmap <F6> :TlistToggle<CR>
+nmap <F5> :set invnumber<CR>
+nmap ,h <C-W>h
+nmap ,j <C-W>j
+nmap ,k <C-W>k
+nmap ,l <C-W>l
+nmap ,H <C-W>H
+nmap ,J <C-W>J
+nmap ,K <C-W>K
+nmap ,L <C-W>L
+nmap ,o <C-W>o
+nmap ,, <C-W><C-W>
+
+set efm=%m
+set fileencodings=utf-8,ucs-bom,gb18030,gbk,gb2312,cp936
